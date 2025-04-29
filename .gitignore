@@ -5,6 +5,7 @@
 .vscode
 
 .dist
+/dist
 
 # dependencies
 .node_modules
