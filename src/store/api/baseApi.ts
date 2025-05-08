@@ -1,16 +1,17 @@
 import { createApi, fetchBaseQuery } from "@reduxjs/toolkit/query/react";
 import { RootState } from "../index";
 
-import { savePendingAction } from '@/lib/db';
+import { savePendingAction } from "@/lib/db";
 
 // Определяем базовый URL для API
-const API_URL = process.env.REACT_APP_API_URL || "http://localhost:8000/api";
+const API_URL =
+  process.env.REACT_APP_API_URL || "https://api.dotsenco-diplom-pwa.ru";
 
 // Создаем базовый API с RTK Query
 export const baseApi = createApi({
   reducerPath: "api",
   baseQuery: fetchBaseQuery({
-    baseUrl: process.env.REACT_APP_API_URL || "/api",
+    baseUrl: API_URL,
     prepareHeaders: (headers, { getState }) => {
       // Получаем токен из состояния
       const token = (getState() as RootState).auth.token;
