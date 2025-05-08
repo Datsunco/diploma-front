@@ -2,7 +2,7 @@ import { baseApi, cacheApiResponse } from "./baseApi";
 import { Task, TaskStatus } from "@/types/task";
 
 interface TasksResponse {
-  tasks: Task[];
+  items: Task[];
   total: number;
 }
 
@@ -65,9 +65,9 @@ export const taskApi = baseApi.injectEndpoints({
         }
       },
       providesTags: (result) =>
-        result && result.tasks
+        result && result.items
           ? [
-              ...result.tasks.map(({ id }) => ({ type: "Task" as const, id })),
+              ...result.items.map(({ id }) => ({ type: "Task" as const, id })),
               { type: "Task", id: "LIST" },
             ]
           : [{ type: "Task", id: "LIST" }],
@@ -91,7 +91,11 @@ export const taskApi = baseApi.injectEndpoints({
       query: (taskData) => ({
         url: "/tasks/tasks",
         method: "POST",
-        body: taskData,
+        body: {
+          ...taskData,
+          team_id: taskData.teamId,
+          assignee_id: taskData.assigneeId,
+        },
       }),
       invalidatesTags: [{ type: "Task", id: "LIST" }],
     }),
@@ -118,6 +122,50 @@ export const taskApi = baseApi.injectEndpoints({
         { type: "Task", id: "LIST" },
       ],
     }),
+    uploadTaskPhoto: builder.mutation<
+      { photoUrl: string },
+      { taskId: string; photoData: string }
+    >({
+      query: ({ taskId, photoData }) => {
+        // Создаем FormData для отправки файла
+        const formData = new FormData();
+
+        // Конвертируем base64 в Blob
+        const byteString = atob(photoData.split(",")[1]);
+        const mimeString = photoData.split(",")[0].split(":")[1].split(";")[0];
+        const ab = new ArrayBuffer(byteString.length);
+        const ia = new Uint8Array(ab);
+
+        for (let i = 0; i < byteString.length; i++) {
+          ia[i] = byteString.charCodeAt(i);
+        }
+
+        const blob = new Blob([ab], { type: mimeString });
+        formData.append("photo", blob, "photo.jpg");
+
+        return {
+          url: `/tasks/${taskId}/photos`,
+          method: "POST",
+          body: formData,
+          formData: true,
+        };
+      },
+      invalidatesTags: (result, error, { taskId }) => [
+        { type: "Task", id: taskId },
+      ],
+    }),
+    addQrCodeToTask: builder.mutation<Task, { taskId: string; qrData: string }>(
+      {
+        query: ({ taskId, qrData }) => ({
+          url: `/tasks/${taskId}/qrcode`,
+          method: "POST",
+          body: { qrData },
+        }),
+        invalidatesTags: (result, error, { taskId }) => [
+          { type: "Task", id: taskId },
+        ],
+      }
+    ),
   }),
 });
 
@@ -127,125 +175,6 @@ export const {
   useCreateTaskMutation,
   useUpdateTaskMutation,
   useDeleteTaskMutation,
+  useUploadTaskPhotoMutation,
+  useAddQrCodeToTaskMutation,
 } = taskApi;
-
-// import { createApi } from '@reduxjs/toolkit/query/react';
-// import { baseQueryWithReauth } from './baseQuery';
-// import {
-//   Task,
-//   TasksResponse,
-//   CreateTaskRequest,
-//   UpdateTaskRequest,
-//   TaskFilter,
-//   TaskSort
-// } from '../types/task';
-
-// export const taskApi = createApi({
-//   reducerPath: 'taskApi',
-//   baseQuery: baseQueryWithReauth,
-//   tagTypes: ['Task'],
-//   endpoints: (builder) => ({
-//     getTasks: builder.query<TasksResponse, {
-//       page?: number;
-//       limit?: number;
-//       filter?: TaskFilter;
-//       sort?: TaskSort;
-//     }>({
-//       query: ({ page = 1, limit = 10, filter, sort }) => {
-//         let url = `/tasks?page=${page}&limit=${limit}`;
-
-//         if (filter) {
-//           if (filter.status?.length) url += `&status=${filter.status.join(',')}`;
-//           if (filter.priority?.length) url += `&priority=${filter.priority.join(',')}`;
-//           if (filter.assigneeId) url += `&assigneeId=${filter.assigneeId}`;
-//           if (filter.teamId) url += `&teamId=${filter.teamId}`;
-//           if (filter.search) url += `&search=${encodeURIComponent(filter.search)}`;
-//           if (filter.tags?.length) url += `&tags=${filter.tags.join(',')}`;
-//           if (filter.startDate) url += `&startDate=${filter.startDate}`;
-//           if (filter.endDate) url += `&endDate=${filter.endDate}`;
-//         }
-
-//         if (sort) {
-//           url += `&sortBy=${sort.field}&sortDirection=${sort.direction}`;
-//         }
-
-//         return url;
-//       },
-//       providesTags: (result) =>
-//         result
-//           ? [
-//               ...result.tasks.map(({ id }) => ({ type: 'Task' as const, id })),
-//               { type: 'Task', id: 'LIST' }
-//             ]
-//           : [{ type: 'Task', id: 'LIST' }]
-//     }),
-
-//     getTaskById: builder.query<Task, string>({
-//       query: (id) => `/tasks/${id}`,
-//       providesTags: (_, __, id) => [{ type: 'Task', id }]
-//     }),
-
-//     createTask: builder.mutation<Task, CreateTaskRequest>({
-//       query: (task) => ({
-//         url: '/tasks',
-//         method: 'POST',
-//         body: task
-//       }),
-//       invalidatesTags: [{ type: 'Task', id: 'LIST' }]
-//     }),
-
-//     updateTask: builder.mutation<Task, UpdateTaskRequest>({
-//       query: ({ id, ...task }) => ({
-//         url: `/tasks/${id}`,
-//         method: 'PATCH',
-//         body: task
-//       }),
-//       invalidatesTags: (_, __, { id }) => [
-//         { type: 'Task', id },
-//         { type: 'Task', id: 'LIST' }
-//       ]
-//     }),
-
-//     deleteTask: builder.mutation<void, string>({
-//       query: (id) => ({
-//         url: `/tasks/${id}`,
-//         method: 'DELETE'
-//       }),
-//       invalidatesTags: [{ type: 'Task', id: 'LIST' }]
-//     }),
-
-//     addComment: builder.mutation<Comment, { taskId: string, content: string }>({
-//       query: ({ taskId, content }) => ({
-//         url: `/tasks/${taskId}/comments`,
-//         method: 'POST',
-//         body: { content }
-//       }),
-//       invalidatesTags: (_, __, { taskId }) => [{ type: 'Task', id: taskId }]
-//     }),
-
-//     uploadAttachment: builder.mutation<Attachment, { taskId: string, file: File }>({
-//       query: ({ taskId, file }) => {
-//         const formData = new FormData();
-//         formData.append('file', file);
-
-//         return {
-//           url: `/tasks/${taskId}/attachments`,
-//           method: 'POST',
-//           body: formData,
-//           formData: true
-//         };
-//       },
-//       invalidatesTags: (_, __, { taskId }) => [{ type: 'Task', id: taskId }]
-//     })
-//   })
-// });
-
-// export const {
-//   useGetTasksQuery,
-//   useGetTaskByIdQuery,
-//   useCreateTaskMutation,
-//   useUpdateTaskMutation,
-//   useDeleteTaskMutation,
-//   useAddCommentMutation,
-//   useUploadAttachmentMutation
-// } = taskApi;

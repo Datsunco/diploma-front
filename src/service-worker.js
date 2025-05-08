@@ -117,23 +117,33 @@ async function syncPendingActions() {
 
 // Обработка push-уведомлений
 self.addEventListener("push", (event) => {
-  const data = event.data.json();
+  if (!event.data) return;
 
-  const options = {
-    body: data.body,
-    icon: "logo192.png",
-    badge: "badge.png",
-    data: {
-      url: data.url,
-    },
-  };
+  try {
+    const data = event.data.json();
 
-  event.waitUntil(self.registration.showNotification(data.title, options));
+    const options = {
+      body: data.body,
+      icon: "/logo192.png",
+      badge: "/logo192.png",
+      vibrate: [100, 50, 100],
+      data: {
+        url: data.url || "/",
+      },
+      actions: data.actions || [],
+    };
+
+    event.waitUntil(self.registration.showNotification(data.title, options));
+  } catch (error) {
+    console.error("Error showing notification:", error);
+  }
 });
 
+// Обработка клика по уведомлению
 self.addEventListener("notificationclick", (event) => {
   event.notification.close();
 
+  // Открываем указанный URL при клике на уведомление
   if (event.notification.data && event.notification.data.url) {
     event.waitUntil(clients.openWindow(event.notification.data.url));
   }

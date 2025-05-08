@@ -1,16 +1,49 @@
 import React from "react";
 import { useParams, useNavigate } from "react-router-dom";
-import { useGetTeamByIdQuery } from "@/store/api/teamApi";
+import {
+  useGetTeamByIdQuery,
+  useRemoveMemberFromTeamMutation,
+} from "@/store/api/teamApi";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import LoadingSpinner from "@/components/ui/loading-spinner";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { ArrowLeft, Edit, User, Users } from "lucide-react";
+import { ArrowLeft, Edit, User, Users, X } from "lucide-react";
+import { useToast } from "@/components/ui/use-toast";
+import AddTeamMemberDialog from "@/components/teams/AddTeamMemberDialog";
 
 const TeamDetailsPage: React.FC = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
-  const { data: team, isLoading, error } = useGetTeamByIdQuery(id as string);
+  const { toast } = useToast();
+
+  const {
+    data: team,
+    isLoading,
+    error,
+    refetch,
+  } = useGetTeamByIdQuery(id as string);
+  const [removeMember, { isLoading: isRemoving }] =
+    useRemoveMemberFromTeamMutation();
+
+  const handleRemoveMember = async (userId: string) => {
+    if (!team) return;
+
+    try {
+      await removeMember({ teamId: team.id, userId }).unwrap();
+      toast({
+        title: "Success",
+        description: "Member removed from team successfully",
+      });
+      refetch(); // Обновляем данные команды
+    } catch (error) {
+      toast({
+        variant: "destructive",
+        title: "Error",
+        description: "Failed to remove member from team",
+      });
+    }
+  };
 
   if (isLoading) {
     return <LoadingSpinner />;
@@ -80,8 +113,9 @@ const TeamDetailsPage: React.FC = () => {
 
         <div>
           <Card>
-            <CardHeader>
+            <CardHeader className="flex flex-row items-center justify-between">
               <CardTitle>Team Members</CardTitle>
+              <AddTeamMemberDialog teamId={team.id} onMemberAdded={refetch} />
             </CardHeader>
             <CardContent>
               {team.members && team.members.length > 0 ? (
@@ -89,21 +123,36 @@ const TeamDetailsPage: React.FC = () => {
                   {team.members.map((member) => (
                     <div
                       key={member.id}
-                      className="flex items-center space-x-3"
+                      className="flex items-center justify-between"
                     >
-                      <div className="h-8 w-8 rounded-full bg-primary text-primary-foreground flex items-center justify-center">
-                        {member.name
-                          ?.split(" ")
-                          .map((n) => n[0])
-                          .join("")
-                          .toUpperCase() || "U"}
+                      <div className="flex items-center space-x-3">
+                        <div className="h-8 w-8 rounded-full bg-primary text-primary-foreground flex items-center justify-center">
+                          {member.name
+                            ?.split(" ")
+                            .map((n) => n[0])
+                            .join("")
+                            .toUpperCase() || "U"}
+                        </div>
+                        <div>
+                          <p className="font-medium">{member.name}</p>
+                          <p className="text-xs text-muted-foreground">
+                            {member.email}
+                          </p>
+                        </div>
                       </div>
-                      <div>
-                        <p className="font-medium">{member.name}</p>
-                        <p className="text-xs text-muted-foreground">
-                          {member.email}
-                        </p>
-                      </div>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        onClick={() => handleRemoveMember(member.id)}
+                        disabled={isRemoving || member.id === team.leaderId}
+                        title={
+                          member.id === team.leaderId
+                            ? "Cannot remove team leader"
+                            : "Remove member"
+                        }
+                      >
+                        <X className="h-4 w-4" />
+                      </Button>
                     </div>
                   ))}
                 </div>
@@ -113,13 +162,6 @@ const TeamDetailsPage: React.FC = () => {
                   <p className="mt-2">No members in this team</p>
                 </div>
               )}
-
-              <Button
-                className="w-full mt-4"
-                onClick={() => navigate(`/teams/${team.id}/members/add`)}
-              >
-                Add Member
-              </Button>
             </CardContent>
           </Card>
         </div>

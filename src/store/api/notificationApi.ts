@@ -53,6 +53,21 @@ export const notificationApi = baseApi.injectEndpoints({
       }),
       invalidatesTags: [{ type: "Notification", id: "LIST" }],
     }),
+    subscribeToPush: builder.mutation<void, { subscription: string }>({
+      query: (data) => ({
+        url: "/notifications/subscribe",
+        method: "POST",
+        body: data,
+      }),
+    }),
+
+    unsubscribeFromPush: builder.mutation<void, { endpoint: string }>({
+      query: (data) => ({
+        url: "/notifications/unsubscribe",
+        method: "POST",
+        body: data,
+      }),
+    }),
 
     deleteNotification: builder.mutation<void, string>({
       query: (id) => ({
@@ -72,4 +87,6 @@ export const {
   useMarkNotificationAsReadMutation,
   useMarkAllNotificationsAsReadMutation,
   useDeleteNotificationMutation,
+  useSubscribeToPushMutation,
+  useUnsubscribeFromPushMutation,
 } = notificationApi;

@@ -108,13 +108,13 @@ const TasksPage: React.FC = () => {
             In Progress
           </Badge>
         );
-      case TaskStatus.COMPLETED:
+      case "completed":
         return (
           <Badge variant="outline" className="bg-green-100 text-green-800">
             Completed
           </Badge>
         );
-      case TaskStatus.OVERDUE:
+      case "overdue":
         return (
           <Badge variant="outline" className="bg-red-100 text-red-800">
             Overdue
@@ -237,7 +237,7 @@ const TasksPage: React.FC = () => {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {tasksData?.tasks?.length === 0 ? (
+              {tasksData?.items?.length === 0 ? (
                 <TableRow>
                   <TableCell colSpan={7} className="text-center py-8">
                     No tasks found. Try adjusting your filters or create a new
@@ -245,8 +245,11 @@ const TasksPage: React.FC = () => {
                   </TableCell>
                 </TableRow>
               ) : (
-                tasksData?.tasks?.map((task) => (
-                  <TableRow key={task.id}>
+                tasksData?.items?.map((task) => (
+                  <TableRow
+                    key={task.id}
+                    onClick={() => navigate(`/tasks/${task.id}`)}
+                  >
                     <TableCell className="font-medium">{task.title}</TableCell>
                     <TableCell>{renderTaskStatus(task.status)}</TableCell>
                     <TableCell>

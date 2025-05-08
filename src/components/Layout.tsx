@@ -1,5 +1,5 @@
-import React, { useState } from "react";
-import { Outlet } from "react-router-dom";
+import React, { useState, useEffect } from "react";
+import { Outlet, useLocation } from "react-router-dom";
 import { useAppSelector } from "@/hooks/redux";
 import Sidebar from "./Sidebar";
 import Header from "./Header";
@@ -8,9 +8,17 @@ import { useGetNotificationsQuery } from "@/store/api/notificationApi";
 const Layout: React.FC = () => {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const { isOnline } = useAppSelector((state) => state.network);
+  const location = useLocation(); // Получаем текущий путь
 
   // Получаем уведомления для отображения в хедере
   const { data: notificationsData } = useGetNotificationsQuery({ limit: 5 });
+
+  // Закрываем боковую панель при изменении пути
+  useEffect(() => {
+    if (sidebarOpen) {
+      setSidebarOpen(false);
+    }
+  }, [location.pathname]); // Зависимость от пути
 
   return (
     <div className="flex h-screen overflow-hidden">

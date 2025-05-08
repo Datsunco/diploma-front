@@ -115,9 +115,9 @@ export const teamApi = baseApi.injectEndpoints({
     addMemberToTeam: builder.mutation<Team, { teamId: string; userId: string }>(
       {
         query: ({ teamId, userId }) => ({
-          url: `/teams/${teamId}/members`,
+          url: `/teams/${teamId}/add_member?user_id=${userId}`,
           method: "POST",
-          body: { userId },
+          // No body needed since we're using query params
         }),
         invalidatesTags: (result, error, { teamId }) => [
           { type: "Team", id: teamId },

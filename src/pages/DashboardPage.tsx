@@ -65,9 +65,8 @@ const DashboardPage: React.FC = () => {
           <CardHeader className="pb-2">
             <CardDescription>Completed Tasks</CardDescription>
             <CardTitle className="text-3xl">
-              {tasksData?.tasks?.filter(
-                (task) => task.status === TaskStatus.COMPLETED
-              ).length || 0}
+              {tasksData?.items?.filter((task) => task.status === "completed")
+                .length || 0}
             </CardTitle>
           </CardHeader>
           <CardContent>
@@ -82,9 +81,8 @@ const DashboardPage: React.FC = () => {
           <CardHeader className="pb-2">
             <CardDescription>Overdue Tasks</CardDescription>
             <CardTitle className="text-3xl">
-              {tasksData?.tasks?.filter(
-                (task) => task.status === TaskStatus.OVERDUE
-              ).length || 0}
+              {tasksData?.items?.filter((task) => task.status === "overdue")
+                .length || 0}
             </CardTitle>
           </CardHeader>
           <CardContent>
@@ -117,7 +115,7 @@ const DashboardPage: React.FC = () => {
         </CardHeader>
         <CardContent>
           <div className="space-y-4">
-            {tasksData?.tasks?.slice(0, 5).map((task) => (
+            {tasksData?.items?.slice(0, 5).map((task) => (
               <div
                 key={task.id}
                 className="flex items-center justify-between border-b pb-2"
@@ -131,16 +129,16 @@ const DashboardPage: React.FC = () => {
                 <div>
                   <span
                     className={`px-2 py-1 rounded-full text-xs ${
-                      task.status === TaskStatus.COMPLETED
+                      task.status === "completed"
                         ? "bg-green-100 text-green-800"
-                        : task.status === TaskStatus.OVERDUE
+                        : task.status === "overdue"
                         ? "bg-red-100 text-red-800"
-                        : task.status === TaskStatus.IN_PROGRESS
+                        : task.status === "in_progress"
                         ? "bg-blue-100 text-blue-800"
                         : "bg-gray-100 text-gray-800"
                     }`}
                   >
-                    {task.status === TaskStatus.IN_PROGRESS
+                    {task.status === "in_progress"
                       ? "In Progress"
                       : task.status.charAt(0).toUpperCase() +
                         task.status.slice(1)}

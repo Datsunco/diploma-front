@@ -48,7 +48,7 @@ const DashboardPage: React.FC = () => {
       overdue: 0,
     };
 
-    tasksData.tasks.forEach((task) => {
+    tasksData.items.forEach((task) => {
       if (task.status === "todo") statusCounts.todo++;
       else if (task.status === "in_progress") statusCounts.inProgress++;
       else if (task.status === "completed") statusCounts.completed++;
@@ -100,7 +100,7 @@ const DashboardPage: React.FC = () => {
           <CardHeader className="pb-2">
             <CardDescription>Completed Tasks</CardDescription>
             <CardTitle className="text-3xl">
-              {tasksData?.tasks.filter((task) => task.status === "completed")
+              {tasksData?.items.filter((task) => task.status === "completed")
                 .length || 0}
             </CardTitle>
           </CardHeader>
@@ -116,7 +116,7 @@ const DashboardPage: React.FC = () => {
           <CardHeader className="pb-2">
             <CardDescription>Overdue Tasks</CardDescription>
             <CardTitle className="text-3xl">
-              {tasksData?.tasks.filter((task) => task.status === "overdue")
+              {tasksData?.items.filter((task) => task.status === "overdue")
                 .length || 0}
             </CardTitle>
           </CardHeader>
@@ -171,7 +171,7 @@ const DashboardPage: React.FC = () => {
         </CardHeader>
         <CardContent>
           <div className="space-y-4">
-            {tasksData?.tasks.slice(0, 5).map((task) => (
+            {tasksData?.items.slice(0, 5).map((task) => (
               <div
                 key={task.id}
                 className="flex items-center justify-between border-b pb-2"

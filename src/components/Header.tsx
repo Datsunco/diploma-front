@@ -1,9 +1,9 @@
-import React from 'react';
-import { Link } from 'react-router-dom';
-import { useLogoutMutation } from '@/store/api/authApi';
-import { useAppSelector } from '@/hooks/redux';
-import { useTheme } from '@/components/theme-provider';
-import { Button } from '@/components/ui/button';
+import React from "react";
+import { Link } from "react-router-dom";
+import { useLogoutMutation } from "@/store/api/authApi";
+import { useAppSelector } from "@/hooks/redux";
+import { useTheme } from "@/components/theme-provider";
+import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -11,20 +11,21 @@ import {
   DropdownMenuLabel,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
-} from '@/components/ui/dropdown-menu';
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { 
-  Menu, 
-  Bell, 
-  User, 
-  LogOut, 
-  Settings, 
-  Sun, 
-  Moon, 
+} from "@/components/ui/dropdown-menu";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import {
+  Menu,
+  Bell,
+  User,
+  LogOut,
+  Settings,
+  Sun,
+  Moon,
   Laptop,
-  WifiOff
-} from 'lucide-react';
-import { Badge } from './ui/badge';
+  WifiOff,
+} from "lucide-react";
+import { Badge } from "./ui/badge";
+import PushNotificationManager from "./PushNotificationManager";
 
 interface HeaderProps {
   onMenuClick: () => void;
@@ -32,8 +33,12 @@ interface HeaderProps {
   isOnline: boolean;
 }
 
-const Header: React.FC<HeaderProps> = ({ onMenuClick, notificationsCount, isOnline }) => {
-  const { user } = useAppSelector(state => state.auth);
+const Header: React.FC<HeaderProps> = ({
+  onMenuClick,
+  notificationsCount,
+  isOnline,
+}) => {
+  const { user } = useAppSelector((state) => state.auth);
   const { theme, setTheme } = useTheme();
   const [logout] = useLogoutMutation();
 
@@ -41,14 +46,19 @@ const Header: React.FC<HeaderProps> = ({ onMenuClick, notificationsCount, isOnli
     try {
       await logout();
     } catch (error) {
-      console.error('Logout failed:', error);
+      console.error("Logout failed:", error);
     }
   };
 
   return (
     <header className="sticky top-0 z-10 flex items-center justify-between h-16 px-4 bg-background border-b">
       <div className="flex items-center">
-        <Button variant="ghost" size="icon" onClick={onMenuClick} className="lg:hidden">
+        <Button
+          variant="ghost"
+          size="icon"
+          onClick={onMenuClick}
+          className="lg:hidden"
+        >
           <Menu className="h-6 w-6" />
         </Button>
         <h1 className="text-xl font-semibold ml-2">Task Management</h1>
@@ -58,7 +68,7 @@ const Header: React.FC<HeaderProps> = ({ onMenuClick, notificationsCount, isOnli
           </Badge>
         )}
       </div>
-      
+
       <div className="flex items-center space-x-4">
         {/* Уведомления */}
         <Link to="/notifications">
@@ -66,19 +76,20 @@ const Header: React.FC<HeaderProps> = ({ onMenuClick, notificationsCount, isOnli
             <Bell className="h-5 w-5" />
             {notificationsCount > 0 && (
               <span className="absolute top-0 right-0 h-4 w-4 bg-destructive text-destructive-foreground rounded-full text-xs flex items-center justify-center">
-                {notificationsCount > 9 ? '9+' : notificationsCount}
+                {notificationsCount > 9 ? "9+" : notificationsCount}
               </span>
             )}
           </Button>
         </Link>
-        
+        <PushNotificationManager />
+
         {/* Меню темы */}
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
             <Button variant="ghost" size="icon">
-              {theme === 'light' ? (
+              {theme === "light" ? (
                 <Sun className="h-5 w-5" />
-              ) : theme === 'dark' ? (
+              ) : theme === "dark" ? (
                 <Moon className="h-5 w-5" />
               ) : (
                 <Laptop className="h-5 w-5" />
@@ -86,21 +97,21 @@ const Header: React.FC<HeaderProps> = ({ onMenuClick, notificationsCount, isOnli
             </Button>
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end">
-            <DropdownMenuItem onClick={() => setTheme('light')}>
+            <DropdownMenuItem onClick={() => setTheme("light")}>
               <Sun className="h-4 w-4 mr-2" />
               Light
             </DropdownMenuItem>
-            <DropdownMenuItem onClick={() => setTheme('dark')}>
+            <DropdownMenuItem onClick={() => setTheme("dark")}>
               <Moon className="h-4 w-4 mr-2" />
               Dark
             </DropdownMenuItem>
-            <DropdownMenuItem onClick={() => setTheme('system')}>
+            <DropdownMenuItem onClick={() => setTheme("system")}>
               <Laptop className="h-4 w-4 mr-2" />
               System
             </DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>
-        
+
         {/* Меню пользователя */}
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
@@ -108,7 +119,11 @@ const Header: React.FC<HeaderProps> = ({ onMenuClick, notificationsCount, isOnli
               <Avatar>
                 <AvatarImage src={user?.avatar} alt={user?.name} />
                 <AvatarFallback>
-                  {user?.name?.split(' ').map(n => n[0]).join('').toUpperCase() || 'U'}
+                  {user?.name
+                    ?.split(" ")
+                    .map((n) => n[0])
+                    .join("")
+                    .toUpperCase() || "U"}
                 </AvatarFallback>
               </Avatar>
             </Button>

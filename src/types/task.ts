@@ -13,21 +13,44 @@ export interface Task {
   teamName?: string;
   tags: string[];
   attachments?: Attachment[];
-  comments?: Comment[];
   assignee?: {
     id: string;
     name: string;
     email: string;
   };
+  comments?: TaskComment[];
+  photos?: TaskPhoto[];
+  qrCodes?: TaskQrCode[];
 }
 
-export enum TaskStatus {
-  TODO = "todo",
-  COMPLETED = "completed",
-  OVERDUE = "overdue",
-  IN_PROGRESS = "in_progress",
-  REVIEW = "review",
-  DONE = "done",
+export type TaskStatus =
+  | "todo"
+  | "in_progress"
+  | "completed"
+  | "overdue"
+  | "review"
+  | "done";
+
+export interface TaskComment {
+  id: string;
+  text: string;
+  userId: string;
+  userName: string;
+  createdAt: string;
+}
+
+export interface TaskPhoto {
+  id: string;
+  url: string;
+  uploadedAt: string;
+  uploadedBy: string;
+}
+
+export interface TaskQrCode {
+  id: string;
+  data: string;
+  scannedAt: string;
+  scannedBy: string;
 }
 
 export enum TaskPriority {

@@ -4,6 +4,8 @@ import {
   useGetTaskByIdQuery,
   useUpdateTaskMutation,
   useDeleteTaskMutation,
+  useUploadTaskPhotoMutation,
+  useAddQrCodeToTaskMutation,
 } from "@/store/api/taskApi";
 import { useGetTeamsQuery } from "@/store/api/teamApi";
 import { useAppSelector } from "@/hooks/redux";
@@ -34,6 +36,7 @@ import {
 } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import LoadingSpinner from "@/components/ui/loading-spinner";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { TaskStatus } from "@/types/task";
@@ -48,8 +51,16 @@ import {
   AlertTriangle,
   CheckCircle,
   BarChart,
+  Camera,
+  QrCode,
+  Image,
+  MessageSquare,
 } from "lucide-react";
 import { useToast } from "@/components/ui/use-toast";
+import CameraCapture from "@/components/tasks/CameraCapture";
+import QRCodeScanner from "@/components/tasks/QRCodeScanner";
+import PhotoGallery from "@/components/tasks/PhotoGallery";
+import ImageUploader from "./ImageUploader";
 
 const TaskDetailsPage: React.FC = () => {
   const { id } = useParams<{ id: string }>();
@@ -59,14 +70,25 @@ const TaskDetailsPage: React.FC = () => {
 
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
   const [statusUpdateLoading, setStatusUpdateLoading] = useState(false);
+  const [comment, setComment] = useState("");
+  const [photos, setPhotos] = useState<string[]>([]);
+  const [qrCodes, setQrCodes] = useState<string[]>([]);
 
   // Получение данных задачи и команд
-  const { data: task, isLoading, error } = useGetTaskByIdQuery(id as string);
+  const {
+    data: task,
+    isLoading,
+    error,
+    refetch,
+  } = useGetTaskByIdQuery(id as string);
   const { data: teamsData } = useGetTeamsQuery();
 
   // Мутации для обновления и удаления задачи
   const [updateTask] = useUpdateTaskMutation();
   const [deleteTask] = useDeleteTaskMutation();
+  const [uploadPhoto, { isLoading: isUploading }] =
+    useUploadTaskPhotoMutation();
+  const [addQrCode, { isLoading: isAddingQr }] = useAddQrCodeToTaskMutation();
 
   // Обработчик изменения статуса задачи
   const handleStatusChange = async (newStatus: TaskStatus) => {
@@ -112,6 +134,104 @@ const TaskDetailsPage: React.FC = () => {
         description: "There was an error deleting the task.",
       });
     }
+  };
+
+  // Обработчик добавления комментария
+  const handleAddComment = async () => {
+    if (!task || !comment.trim()) return;
+
+    try {
+      await updateTask({
+        id: task.id,
+        // comments: [
+        //   ...(task.comments || []),
+        //   {
+        //     id: Date.now().toString(),
+        //     text: comment,
+        //     userId: user?.id || "unknown",
+        //     userName: user?.name || "Unknown User",
+        //     createdAt: new Date().toISOString(),
+        //   },
+        // ],
+      }).unwrap();
+
+      setComment("");
+      toast({
+        title: "Comment added",
+        description: "Your comment has been added to the task.",
+      });
+    } catch (error) {
+      toast({
+        variant: "destructive",
+        title: "Failed to add comment",
+        description: "There was an error adding your comment.",
+      });
+    }
+  };
+
+  // Обработчик захвата фотографии
+  const handleCapturePhoto = async (photoData: string) => {
+    if (!task) return;
+
+    try {
+      await uploadPhoto({
+        taskId: task.id,
+        photoData,
+      }).unwrap();
+
+      // Добавляем фото в локальный массив для немедленного отображения
+      setPhotos([...photos, photoData]);
+
+      toast({
+        title: "Photo uploaded",
+        description: "The photo has been added to the task.",
+      });
+
+      // Обновляем данные задачи
+      refetch();
+    } catch (error) {
+      toast({
+        variant: "destructive",
+        title: "Failed to upload photo",
+        description: "There was an error uploading the photo.",
+      });
+    }
+  };
+
+  // Обработчик сканирования QR-кода
+  const handleQrCodeScan = async (qrData: string) => {
+    if (!task) return;
+
+    try {
+      await addQrCode({
+        taskId: task.id,
+        qrData,
+      }).unwrap();
+
+      // Добавляем QR-код в локальный массив
+      setQrCodes([...qrCodes, qrData]);
+
+      toast({
+        title: "QR Code added",
+        description: "The QR code has been added to the task.",
+      });
+
+      // Обновляем данные задачи
+      refetch();
+    } catch (error) {
+      toast({
+        variant: "destructive",
+        title: "Failed to add QR code",
+        description: "There was an error adding the QR code.",
+      });
+    }
+  };
+
+  // Обработчик удаления фотографии
+  const handleRemovePhoto = (index: number) => {
+    const newPhotos = [...photos];
+    newPhotos.splice(index, 1);
+    setPhotos(newPhotos);
   };
 
   // Функция для отображения статуса задачи
@@ -214,7 +334,10 @@ const TaskDetailsPage: React.FC = () => {
                       Created At
                     </h3>
                     <p className="mt-1">
-                      {format(new Date(task.createdAt), "MMM dd, yyyy HH:mm")}
+                      {format(
+                        new Date(task.createdAt || Date.now()),
+                        "MMM dd, yyyy HH:mm"
+                      )}
                     </p>
                   </div>
                   <div>
@@ -223,7 +346,10 @@ const TaskDetailsPage: React.FC = () => {
                     </h3>
                     <p className="mt-1 flex items-center">
                       <Clock className="h-4 w-4 mr-1" />
-                      {format(new Date(task.dueDate || ""), "MMM dd, yyyy")}
+                      {format(
+                        new Date(task.dueDate || Date.now()),
+                        "MMM dd, yyyy"
+                      )}
                     </p>
                   </div>
                 </div>
@@ -268,22 +394,203 @@ const TaskDetailsPage: React.FC = () => {
             </CardFooter>
           </Card>
 
-          {/* Комментарии или дополнительная информация */}
-          <Card>
-            <CardHeader>
-              <CardTitle>Comments</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <Textarea placeholder="Add a comment..." className="mb-4" />
-              <Button>Add Comment</Button>
+          {/* Вкладки для фото, QR-кодов и комментариев */}
+          <Tabs defaultValue="comments" className="w-full">
+            <TabsList className="grid grid-cols-3">
+              <TabsTrigger value="comments">
+                <MessageSquare className="h-4 w-4 mr-2" />
+                Comments
+              </TabsTrigger>
+              <TabsTrigger value="photos">
+                <Image className="h-4 w-4 mr-2" />
+                Photos
+              </TabsTrigger>
+              <TabsTrigger value="qrcodes">
+                <QrCode className="h-4 w-4 mr-2" />
+                QR Codes
+              </TabsTrigger>
+            </TabsList>
 
-              <div className="mt-6">
-                <p className="text-center text-muted-foreground">
-                  No comments yet.
-                </p>
-              </div>
-            </CardContent>
-          </Card>
+            {/* Вкладка комментариев */}
+            <TabsContent value="comments">
+              <Card>
+                <CardHeader>
+                  <CardTitle>Comments</CardTitle>
+                  <CardDescription>Task discussion and updates</CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <div className="space-y-4">
+                    {task.comments && task.comments.length > 0 ? (
+                      task.comments.map((comment) => (
+                        <div key={comment.id} className="border rounded-lg p-3">
+                          <div className="flex justify-between items-start">
+                            <div className="font-medium">
+                              {comment.userName}
+                            </div>
+                            <div className="text-xs text-muted-foreground">
+                              {format(
+                                new Date(comment.createdAt),
+                                "MMM dd, yyyy HH:mm"
+                              )}
+                            </div>
+                          </div>
+                          <p className="mt-2">{comment.text}</p>
+                        </div>
+                      ))
+                    ) : (
+                      <p className="text-center text-muted-foreground py-4">
+                        No comments yet.
+                      </p>
+                    )}
+                  </div>
+
+                  <div className="mt-6">
+                    <Textarea
+                      placeholder="Add a comment..."
+                      className="mb-4"
+                      value={comment}
+                      onChange={(e) => setComment(e.target.value)}
+                    />
+                    <Button
+                      onClick={handleAddComment}
+                      disabled={!comment.trim()}
+                    >
+                      Add Comment
+                    </Button>
+                  </div>
+                </CardContent>
+              </Card>
+            </TabsContent>
+
+            {/* Вкладка фотографий */}
+            <TabsContent value="photos">
+              <Card>
+                <CardHeader>
+                  <CardTitle>Photos</CardTitle>
+                  <CardDescription>
+                    Capture and view task-related images
+                  </CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <div className="flex flex-wrap gap-4 mb-6">
+                    <CameraCapture onCapture={handleCapturePhoto} />
+                    <ImageUploader
+                      onUpload={handleCapturePhoto}
+                      isLoading={isUploading}
+                    />
+                  </div>
+
+                  {/* Отображение фотографий */}
+                  {task.photos && task.photos.length > 0 ? (
+                    <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+                      {task.photos.map((photo, index) => (
+                        <Card
+                          key={index}
+                          className="relative overflow-hidden group"
+                        >
+                          <CardContent className="p-0">
+                            <img
+                              src={photo.url}
+                              alt={`Photo ${index + 1}`}
+                              className="w-full aspect-square object-cover"
+                            />
+                            <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                              <Button
+                                variant="secondary"
+                                size="sm"
+                                onClick={() => window.open(photo.url, "_blank")}
+                              >
+                                View Full Size
+                              </Button>
+                            </div>
+                          </CardContent>
+                        </Card>
+                      ))}
+                    </div>
+                  ) : (
+                    <div className="text-center py-8">
+                      <Image className="h-12 w-12 mx-auto text-muted-foreground" />
+                      <p className="mt-2 text-muted-foreground">
+                        No photos added yet.
+                      </p>
+                      <p className="text-sm text-muted-foreground">
+                        Take a photo to document your progress.
+                      </p>
+                    </div>
+                  )}
+
+                  {/* Отображение локально добавленных фотографий */}
+                  <PhotoGallery photos={photos} onRemove={handleRemovePhoto} />
+                </CardContent>
+              </Card>
+            </TabsContent>
+
+            {/* Вкладка QR-кодов */}
+            <TabsContent value="qrcodes">
+              <Card>
+                <CardHeader>
+                  <CardTitle>QR Codes</CardTitle>
+                  <CardDescription>
+                    Scan and manage QR codes for this task
+                  </CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <div className="mb-6">
+                    <QRCodeScanner onScan={handleQrCodeScan} />
+                  </div>
+
+                  {/* Отображение QR-кодов */}
+                  {(task.qrCodes && task.qrCodes.length > 0) ||
+                  qrCodes.length > 0 ? (
+                    <div className="space-y-4">
+                      {task.qrCodes &&
+                        task.qrCodes.map((qrCode, index) => (
+                          <div key={index} className="border rounded-lg p-3">
+                            <div className="flex justify-between items-start">
+                              <div className="font-medium">
+                                QR Code {index + 1}
+                              </div>
+                              <div className="text-xs text-muted-foreground">
+                                {format(
+                                  new Date(qrCode.scannedAt),
+                                  "MMM dd, yyyy HH:mm"
+                                )}
+                              </div>
+                            </div>
+                            <p className="mt-2 break-all">{qrCode.data}</p>
+                          </div>
+                        ))}
+
+                      {qrCodes.map((qrData, index) => (
+                        <div
+                          key={`local-${index}`}
+                          className="border rounded-lg p-3"
+                        >
+                          <div className="flex justify-between items-start">
+                            <div className="font-medium">QR Code (New)</div>
+                            <div className="text-xs text-muted-foreground">
+                              {format(new Date(), "MMM dd, yyyy HH:mm")}
+                            </div>
+                          </div>
+                          <p className="mt-2 break-all">{qrData}</p>
+                        </div>
+                      ))}
+                    </div>
+                  ) : (
+                    <div className="text-center py-8">
+                      <QrCode className="h-12 w-12 mx-auto text-muted-foreground" />
+                      <p className="mt-2 text-muted-foreground">
+                        No QR codes scanned yet.
+                      </p>
+                      <p className="text-sm text-muted-foreground">
+                        Scan a QR code to track equipment or locations.
+                      </p>
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+            </TabsContent>
+          </Tabs>
         </div>
 
         {/* Боковая панель */}
@@ -333,7 +640,7 @@ const TaskDetailsPage: React.FC = () => {
           </Card>
 
           {/* Информация о команде */}
-          {team && (
+          {team && team.members && (
             <Card>
               <CardHeader>
                 <CardTitle>Team</CardTitle>
@@ -343,8 +650,8 @@ const TaskDetailsPage: React.FC = () => {
                 <div className="space-y-2">
                   <p className="text-sm text-muted-foreground">Team Members:</p>
                   <div className="space-y-2">
-                    {team.members && team.members?.length > 0 ? (
-                      team.members.map((member) => (
+                    {team.members?.length > 0 ? (
+                      team.members.map((member: any) => (
                         <div
                           key={member.id}
                           className="flex items-center space-x-2"
@@ -352,7 +659,7 @@ const TaskDetailsPage: React.FC = () => {
                           <div className="h-8 w-8 rounded-full bg-primary text-primary-foreground flex items-center justify-center">
                             {member.name
                               ?.split(" ")
-                              .map((n) => n[0])
+                              .map((n: any) => n[0])
                               .join("")
                               .toUpperCase() || "U"}
                           </div>
@@ -369,6 +676,52 @@ const TaskDetailsPage: React.FC = () => {
               </CardContent>
             </Card>
           )}
+
+          {/* Быстрые действия */}
+          <Card>
+            <CardHeader>
+              <CardTitle>Quick Actions</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-2">
+              <Button
+                variant="outline"
+                className="w-full justify-start"
+                onClick={() => navigate(`/tasks/${task.id}/edit`)}
+              >
+                <Edit className="h-4 w-4 mr-2" />
+                Edit Task
+              </Button>
+
+              <Button
+                variant="outline"
+                className="w-full justify-start"
+                onClick={() => window.print()}
+              >
+                <Image className="h-4 w-4 mr-2" />
+                Print Task
+              </Button>
+
+              <Button
+                variant="outline"
+                className="w-full justify-start"
+                onClick={() => {
+                  const el = document.createElement("textarea");
+                  el.value = window.location.href;
+                  document.body.appendChild(el);
+                  el.select();
+                  document.execCommand("copy");
+                  document.body.removeChild(el);
+                  toast({
+                    title: "Link Copied",
+                    description: "Task link copied to clipboard",
+                  });
+                }}
+              >
+                <Users className="h-4 w-4 mr-2" />
+                Share Task
+              </Button>
+            </CardContent>
+          </Card>
         </div>
       </div>
 
